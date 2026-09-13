@@ -1,0 +1,23 @@
+{
+	"name": "HQImageMagickResize",
+	"namemsg": "hqimagemagickresize-extensionname",
+	"author": [
+		"[https://fireemblemwiki.org/wiki/User:Peter_Samuels Peter Samuels]"
+	],
+	"url": "https://www.mediawiki.org/wiki/Extension:HQImageMagickResize",
+	"descriptionmsg": "hqimagemagickresize-desc",
+	"license-name": "GPL-2.0-or-later",
+	"type": "media",
+	"requires": {
+		"MediaWiki": ">= 1.42.0"
+	},
+	"AutoloadNamespaces": {
+		"MediaWiki\\Extension\\HQImageMagickResize\\": "src/"
+	},
+	"MessagesDirs": {
+		"HQImageMagickResize": [
+			"i18n"
+		]
+	},
+	"manifest_version": 2
+}

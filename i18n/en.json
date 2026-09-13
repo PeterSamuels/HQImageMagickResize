@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Peter Samuels"
+		]
+	},
+	"hqimagemagickresize-extensionname": "HQImageMagickResize",
+	"hqimagemagickresize-desc": "Makes ImageMagick use -resize instead of -thumbnail for better quality when resizing images."
+}
