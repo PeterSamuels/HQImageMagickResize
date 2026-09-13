@@ -5,5 +5,5 @@
 		]
 	},
 	"hqimagemagickresize-extensionname": "HQImageMagickResize",
-	"hqimagemagickresize-desc": "Makes ImageMagick use <code>-resize</code> instead of <code>-thumbnail</code> for better quality when resizing images"
+	"hqimagemagickresize-desc": "Makes ImageMagick use <code>-resize</code> instead of <code>-thumbnail</code> for better quality when resizing PNG and JPEG images"
 }
