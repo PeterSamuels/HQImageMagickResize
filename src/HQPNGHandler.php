@@ -21,10 +21,8 @@
  * @ingroup Media
  */
 namespace MediaWiki\Extension\HQImageMagickResize;
-use MediaWiki\Context\IContextSource;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
-use Wikimedia\RequestTimeout\TimeoutException;
 use MediaWiki\Shell\Shell;
 
 /**
