@@ -42,8 +42,6 @@ class HQJpegHandler extends \JpegHandler {
 		$useTinyRGBForJPGThumbnails = MediaWikiServices::getInstance()
 			->getMainConfig()->get( MainConfigNames::UseTinyRGBForJPGThumbnails );
 
-		$ret = parent::transformImageMagick( $image, $params );
-
 		# use ImageMagick
 		$mainConfig = MediaWikiServices::getInstance()->getMainConfig();
 		$sharpenReductionThreshold = $mainConfig->get( MainConfigNames::SharpenReductionThreshold );
