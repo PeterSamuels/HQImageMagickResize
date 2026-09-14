@@ -74,7 +74,7 @@ class HQPNGHandler extends \PNGHandler {
 			// For the -thumbnail option a "!" is needed to force exact size,
 			// or ImageMagick may decide your ratio is wrong and slice off
 			// a pixel.
-			['-strip'],
+			[ '-strip' ],
 			[ '-resize', "{$width}x{$height}!" ],
 			// Add the source url as a comment to the thumb, but don't add the flag if there's no comment
 			( $params['comment'] !== ''

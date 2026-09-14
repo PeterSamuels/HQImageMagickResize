@@ -46,7 +46,6 @@ class HQJpegHandler extends \JpegHandler {
 		$mainConfig = MediaWikiServices::getInstance()->getMainConfig();
 		$sharpenReductionThreshold = $mainConfig->get( MainConfigNames::SharpenReductionThreshold );
 		$sharpenParameter = $mainConfig->get( MainConfigNames::SharpenParameter );
-		$maxAnimatedGifArea = $mainConfig->get( MainConfigNames::MaxAnimatedGifArea );
 		$imageMagickTempDir = $mainConfig->get( MainConfigNames::ImageMagickTempDir );
 		$imageMagickConvertCommand = $mainConfig->get( MainConfigNames::ImageMagickConvertCommand );
 		$jpegPixelFormat = $mainConfig->get( MainConfigNames::JpegPixelFormat );
@@ -55,7 +54,7 @@ class HQJpegHandler extends \JpegHandler {
 		$sharpen = [];
 		$scene = false;
 		$animation_post = [];
-		$decoderHint = [];
+		// $decoderHint = [];
 		$subsampling = [];
 
 		//Removed code for other MIME types, since this is a JPEG handler only.
@@ -73,7 +72,8 @@ class HQJpegHandler extends \JpegHandler {
 		}
 
 		// JPEG decoder hint to reduce memory, available since IM 6.5.6-2
-		$decoderHint = [ '-define', "jpeg:size={$params['physicalDimensions']}" ];
+		// $decoderHint = [ '-define', "jpeg:size={$params['physicalDimensions']}" ];
+		// Decoder hint commented out due to aliasing problems with scanned printer dots
 
 		if ( $jpegPixelFormat ) {
 			$factors = $this->imageMagickSubsampling( $jpegPixelFormat );
@@ -95,12 +95,12 @@ class HQJpegHandler extends \JpegHandler {
 			// Specify white background color, will be used for transparent images
 			// in Internet Explorer/Windows instead of default black.
 			[ '-background', 'white' ],
-			$decoderHint,
+			// $decoderHint,
 			[ $this->escapeMagickInput( $params['srcPath'], $scene ) ],
 			// For the -thumbnail option a "!" is needed to force exact size,
 			// or ImageMagick may decide your ratio is wrong and slice off
 			// a pixel.
-			['-strip'],
+			[ '-strip' ],
 			[ '-resize', "{$width}x{$height}!" ],
 			// Add the source url as a comment to the thumb, but don't add the flag if there's no comment
 			( $params['comment'] !== ''
