@@ -20,6 +20,13 @@
  * @file
  * @ingroup Media
  */
+
+/**
+  * Code originally from MediaWiki's BitmapHandler
+  * Changes made by Peter Samuels on September 13, 2026:
+  *     Changed -thumbnail to -strip -resize
+  *     Removed code for non-PNG MIME types
+*/
 namespace MediaWiki\Extension\HQImageMagickResize;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
