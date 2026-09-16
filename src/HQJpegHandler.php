@@ -1,35 +1,23 @@
 <?php
 /**
- * Handler for JPEG images.
+ * Generic handler for bitmap images.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
+ * @license GPL-2.0-or-later
  * @file
  * @ingroup Media
  */
 
 /**
   * Code originally from MediaWiki's BitmapHandler and JpegHandler
-  * Changes made by Peter Samuels on September 13, 2026:
+  * Changes made by Peter Samuels on September 15, 2026:
   *     Changed -thumbnail to -strip -resize
   *     Removed code for non-JPEG MIME types
   *     Removed decoder hint
 */
 
 namespace MediaWiki\Extension\HQImageMagickResize;
+use MediaWiki\Media\JpegHandler;
+use MediaWiki\FileRepo\File\File;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Shell\Shell;
@@ -43,14 +31,17 @@ use MediaWiki\Shell\Shell;
  *
  * @ingroup Media
  */
-class HQJpegHandler extends \JpegHandler {
+class HQJpegHandler extends JpegHandler {
 	/**
-	 * @inheritDoc
+	 * Transform an image using ImageMagick
+	 * @stable to override
+	 *
+	 * @param File $image File associated with this thumbnail
+	 * @param array $params Array with scaler params
+	 *
+	 * @return MediaTransformError|false Error object if error occurred, false (=no error) otherwise
 	 */
 	protected function transformImageMagick( $image, $params ) {
-		$useTinyRGBForJPGThumbnails = MediaWikiServices::getInstance()
-			->getMainConfig()->get( MainConfigNames::UseTinyRGBForJPGThumbnails );
-
 		# use ImageMagick
 		$mainConfig = MediaWikiServices::getInstance()->getMainConfig();
 		$sharpenReductionThreshold = $mainConfig->get( MainConfigNames::SharpenReductionThreshold );
@@ -63,10 +54,8 @@ class HQJpegHandler extends \JpegHandler {
 		$sharpen = [];
 		$scene = false;
 		$animation_post = [];
-		// $decoderHint = [];
 		$subsampling = [];
 
-		//Removed code for other MIME types, since this is a JPEG handler only.
 		$qualityVal = isset( $params['quality'] ) ? (string)$params['quality'] : null;
 		$quality = [ '-quality', $qualityVal ?: (string)$jpegQuality ]; // 80% by default
 		if ( $params['interlace'] ) {
@@ -80,23 +69,25 @@ class HQJpegHandler extends \JpegHandler {
 			$sharpen = [ '-sharpen', $sharpenParameter ];
 		}
 
-		// JPEG decoder hint to reduce memory, available since IM 6.5.6-2
-		// $decoderHint = [ '-define', "jpeg:size={$params['physicalDimensions']}" ];
-		// Decoder hint commented out due to aliasing problems with scanned printer dots
-
 		if ( $jpegPixelFormat ) {
 			$factors = $this->imageMagickSubsampling( $jpegPixelFormat );
 			$subsampling = [ '-sampling-factor', implode( ',', $factors ) ];
 		}
 
 		// Use one thread only, to avoid deadlock bugs on OOM
-		$env = [ 'OMP_NUM_THREADS' => 1 ];
+		$env = [ 'OMP_NUM_THREADS' => '1' ];
 		if ( (string)$imageMagickTempDir !== '' ) {
-			$env['MAGICK_TMPDIR'] = $imageMagickTempDir;
+			$env['MAGICK_TMPDIR'] = (string)$imageMagickTempDir;
 		}
 
 		$rotation = isset( $params['disableRotation'] ) ? 0 : $this->getRotation( $image );
 		[ $width, $height ] = $this->extractPreRotationDimensions( $params, $rotation );
+		$mirroring = isset( $params['disableRotation'] ) ? null : $this->getMirrored( $image );
+		$mirrored = match ( $mirroring ) {
+			'horizontal' => [ '-flop' ],
+			'vertical' => [ '-flip' ],
+			default => [],
+		};
 
 		$cmd = Shell::escape( ...array_merge(
 			[ $imageMagickConvertCommand ],
@@ -104,7 +95,6 @@ class HQJpegHandler extends \JpegHandler {
 			// Specify white background color, will be used for transparent images
 			// in Internet Explorer/Windows instead of default black.
 			[ '-background', 'white' ],
-			// $decoderHint,
 			[ $this->escapeMagickInput( $params['srcPath'], $scene ) ],
 			// For the -thumbnail option a "!" is needed to force exact size,
 			// or ImageMagick may decide your ratio is wrong and slice off
@@ -120,13 +110,15 @@ class HQJpegHandler extends \JpegHandler {
 			[ '-depth', 8 ],
 			$sharpen,
 			[ '-rotate', "-$rotation" ],
+			$mirrored,
 			$subsampling,
 			$animation_post,
 			[ $this->escapeMagickOutput( $params['dstPath'] ) ] ) );
 
 		wfDebug( __METHOD__ . ": running ImageMagick: $cmd" );
-		$retval = 0;
-		$err = wfShellExecWithStderr( $cmd, $retval, $env );
+		$shell = Shell::command()->unsafeCommand( $cmd )->environment( $env )->execute();
+		$retval = $shell->getExitCode();
+		$err = $shell->getStderr();
 
 		if ( $retval !== 0 ) {
 			$this->logErrorForExternalProcess( $retval, $err, $cmd );
@@ -165,6 +157,6 @@ class HQJpegHandler extends \JpegHandler {
 			);
 		}
 
-		return false;
+		return false; # No error
 	}
 }

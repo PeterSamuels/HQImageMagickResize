@@ -1,3 +1,3 @@
 MediaWiki extension designed for [Megami Tensei Wiki](https://megatenwiki.com/wiki/Main_Page) that resizes PNG and JPEG images using `-resize` instead of `-thumbnail` due to the aforementioned wiki's frequent uploads of files with printer dots, which are horrible with `-thumbnail`.
 
-Currently does not support MediaWiki 1.46 or later.
+This is the 1.46+ branch, which is untested.

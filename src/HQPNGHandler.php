@@ -1,22 +1,8 @@
 <?php
 /**
- * Handler for PNG images.
+ * Generic handler for bitmap images.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
+ * @license GPL-2.0-or-later
  * @file
  * @ingroup Media
  */
@@ -28,6 +14,8 @@
   *     Removed code for non-PNG MIME types
 */
 namespace MediaWiki\Extension\HQImageMagickResize;
+use MediaWiki\Media\PNGHandler;
+use MediaWiki\FileRepo\File\File;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Shell\Shell;
@@ -37,8 +25,8 @@ use MediaWiki\Shell\Shell;
  *
  * @ingroup Media
  */
-class HQPNGHandler extends \PNGHandler {
-		/**
+class HQPNGHandler extends PNGHandler {
+	/**
 	 * Transform an image using ImageMagick
 	 * @stable to override
 	 *
@@ -63,13 +51,19 @@ class HQPNGHandler extends \PNGHandler {
 		}
 
 		// Use one thread only, to avoid deadlock bugs on OOM
-		$env = [ 'OMP_NUM_THREADS' => 1 ];
+		$env = [ 'OMP_NUM_THREADS' => '1' ];
 		if ( (string)$imageMagickTempDir !== '' ) {
-			$env['MAGICK_TMPDIR'] = $imageMagickTempDir;
+			$env['MAGICK_TMPDIR'] = (string)$imageMagickTempDir;
 		}
 
 		$rotation = isset( $params['disableRotation'] ) ? 0 : $this->getRotation( $image );
 		[ $width, $height ] = $this->extractPreRotationDimensions( $params, $rotation );
+		$mirroring = isset( $params['disableRotation'] ) ? null : $this->getMirrored( $image );
+		$mirrored = match ( $mirroring ) {
+			'horizontal' => [ '-flop' ],
+			'vertical' => [ '-flip' ],
+			default => [],
+		};
 
 		$cmd = Shell::escape( ...array_merge(
 			[ $imageMagickConvertCommand ],
@@ -81,7 +75,7 @@ class HQPNGHandler extends \PNGHandler {
 			// For the -thumbnail option a "!" is needed to force exact size,
 			// or ImageMagick may decide your ratio is wrong and slice off
 			// a pixel.
-			[ '-strip' ],
+			[' -strip '],
 			[ '-resize', "{$width}x{$height}!" ],
 			// Add the source url as a comment to the thumb, but don't add the flag if there's no comment
 			( $params['comment'] !== ''
@@ -91,12 +85,14 @@ class HQPNGHandler extends \PNGHandler {
 			[ '+set', 'Thumb::URI' ],
 			[ '-depth', 8 ],
 			[ '-rotate', "-$rotation" ],
+			$mirrored,
 			$animation_post,
 			[ $this->escapeMagickOutput( $params['dstPath'] ) ] ) );
 
 		wfDebug( __METHOD__ . ": running ImageMagick: $cmd" );
-		$retval = 0;
-		$err = wfShellExecWithStderr( $cmd, $retval, $env );
+		$shell = Shell::command()->unsafeCommand( $cmd )->environment( $env )->execute();
+		$retval = $shell->getExitCode();
+		$err = $shell->getStderr();
 
 		if ( $retval !== 0 ) {
 			$this->logErrorForExternalProcess( $retval, $err, $cmd );
