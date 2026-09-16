@@ -42,6 +42,9 @@ class HQJpegHandler extends JpegHandler {
 	 * @return MediaTransformError|false Error object if error occurred, false (=no error) otherwise
 	 */
 	protected function transformImageMagick( $image, $params ) {
+		$useTinyRGBForJPGThumbnails = MediaWikiServices::getInstance()
+			->getMainConfig()->get( MainConfigNames::UseTinyRGBForJPGThumbnails );
+
 		# use ImageMagick
 		$mainConfig = MediaWikiServices::getInstance()->getMainConfig();
 		$sharpenReductionThreshold = $mainConfig->get( MainConfigNames::SharpenReductionThreshold );
@@ -56,6 +59,7 @@ class HQJpegHandler extends JpegHandler {
 		$animation_post = [];
 		$subsampling = [];
 
+		//Removed code for other MIME types, since this is a JPEG handler only.
 		$qualityVal = isset( $params['quality'] ) ? (string)$params['quality'] : null;
 		$quality = [ '-quality', $qualityVal ?: (string)$jpegQuality ]; // 80% by default
 		if ( $params['interlace'] ) {
@@ -68,6 +72,8 @@ class HQJpegHandler extends JpegHandler {
 		) {
 			$sharpen = [ '-sharpen', $sharpenParameter ];
 		}
+
+		// Decoder hint removed due to aliasing problems with scanned printer dots
 
 		if ( $jpegPixelFormat ) {
 			$factors = $this->imageMagickSubsampling( $jpegPixelFormat );
